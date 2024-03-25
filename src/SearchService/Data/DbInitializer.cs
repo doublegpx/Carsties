@@ -21,16 +21,23 @@ public class DbInitializer
 
         var count = await DB.CountAsync<Item>();
 
-        using var scope = app.Services.CreateScope();
+        if (count == 0)
+        {
+            using var scope = app.Services.CreateScope();
 
-        var httpClient = scope.ServiceProvider.GetRequiredService<AuctionSvcHttpClient>();
+            var httpClient = scope.ServiceProvider.GetRequiredService<AuctionSvcHttpClient>();
 
-        var items = await httpClient.GetItemForSearchDb();
+            var items = await httpClient.GetItemForSearchDb();
 
-        Console.WriteLine(items.Count + "return from acution service");
+            Console.WriteLine(items.Count + " return from acution service");
 
-        if (items.Count > 0)
-            await DB.SaveAsync(items);
+            if (items.Count > 0)
+                await DB.SaveAsync(items);
+        }
+        else
+        {
+            Console.WriteLine(count + " already exist in the Mongo database");
+        }
 
         // if (count == 0)
         // {

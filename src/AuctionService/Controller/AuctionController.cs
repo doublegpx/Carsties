@@ -3,6 +3,9 @@ using AuctionService.DTOs;
 using AuctionService.Entities;
 using AutoMapper;
 using AutoMapper.QueryableExtensions;
+using Contracts;
+using MassTransit;
+using MassTransit.Transports;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 
@@ -14,11 +17,13 @@ public class AuctionController : ControllerBase
 {
     private readonly AuctionDbContext _context;
     private readonly IMapper _mapper;
+    private readonly IPublishEndpoint _publishEndpoint;
 
-    public AuctionController(AuctionDbContext context, IMapper mapper)
+    public AuctionController(AuctionDbContext context, IMapper mapper, IPublishEndpoint publishEndpoint)
     {
         _context = context;
         _mapper = mapper;
+        _publishEndpoint = publishEndpoint;
     }
 
     [HttpGet]
@@ -62,12 +67,16 @@ public class AuctionController : ControllerBase
 
         _context.Auctions.Add(auction);
 
+        var newAuctionDto = _mapper.Map<AuctionDto>(auction);
+
+        await _publishEndpoint.Publish(_mapper.Map<AuctionCreated>(newAuctionDto));
+
         var result = await _context.SaveChangesAsync() > 0;
 
         if (!result)
             return BadRequest("Could not save changes to DB");
 
-        return CreatedAtAction(nameof(GetAcutionById), new { auction.Id }, _mapper.Map<AuctionDto>(auction));
+        return CreatedAtAction(nameof(GetAcutionById), new { auction.Id }, newAuctionDto);
     }
 
     [HttpPut("{id}")]
@@ -84,6 +93,8 @@ public class AuctionController : ControllerBase
         auction.Item.Mileage = updateAuctionDto.Mileage ?? auction.Item.Mileage;
         auction.Item.Year = updateAuctionDto.Year ?? auction.Item.Year;
 
+        await _publishEndpoint.Publish(_mapper.Map<AuctionUpdated>(auction));
+
         var result = await _context.SaveChangesAsync() > 0;
 
         if (!result)
@@ -99,6 +110,8 @@ public class AuctionController : ControllerBase
 
         if (auction == null)
             return NotFound();
+
+        await _publishEndpoint.Publish<AuctionDeleted>(new { Id = auction.Id.ToString() });
 
         _context.Auctions.Remove(auction);
 

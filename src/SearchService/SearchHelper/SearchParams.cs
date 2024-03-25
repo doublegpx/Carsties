@@ -13,6 +13,4 @@ public class SearchParams
     public string SearchBy { get; set; }
     public string FilterBy { get; set; }
 
-
-
 }
