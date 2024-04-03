@@ -35,7 +35,7 @@ public class SearchController : ControllerBase
         query = searchParams.FilterBy switch
         {
             "finished" => query.Match(x => x.AuctionEnd < DateTime.UtcNow),
-            "endingsoon" => query.Match(x => x.AuctionEnd < DateTime.Now.AddHours(6) &&
+            "endingSoon" => query.Match(x => x.AuctionEnd < DateTime.Now.AddHours(6) &&
                             x.AuctionEnd > DateTime.UtcNow),
             _ => query.Match(x => x.AuctionEnd > DateTime.UtcNow)
         };
